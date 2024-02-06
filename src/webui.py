@@ -166,10 +166,41 @@ if __name__ == '__main__':
     with open(os.path.join(rvc_models_dir, 'public_models.json'), encoding='utf8') as infile:
         public_models = json.load(infile)
 
-    with gr.Blocks(title='AICoverGenWebUI') as app:
 
-        gr.Label('AICoverGen WebUI created with ❤️', show_label=False)
+from pathlib import Path
+import requests
 
+MDX_DOWNLOAD_LINK = 'https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/'
+RVC_DOWNLOAD_LINK = 'https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/'
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+mdxnet_models_dir = BASE_DIR / 'mdxnet_models'
+rvc_models_dir = BASE_DIR / 'rvc_models'
+
+
+def dl_model(link, model_name, dir_name):
+    with requests.get(f'{link}{model_name}') as r:
+        r.raise_for_status()
+        with open(dir_name / model_name, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+if __name__ == '__main__':
+    mdx_model_names = ['UVR-MDX-NET-Voc_FT.onnx', 'UVR_MDXNET_KARA_2.onnx', 'Reverb_HQ_By_FoxJoy.onnx']
+    for model in mdx_model_names:
+        print(f'Downloading {model}...')
+        dl_model(MDX_DOWNLOAD_LINK, model, mdxnet_models_dir)
+
+    rvc_model_names = ['hubert_base.pt', 'rmvpe.pt']
+    for model in rvc_model_names:
+        print(f'Downloading {model}...')
+        dl_model(RVC_DOWNLOAD_LINK, model, rvc_models_dir)
+
+    print('All models downloaded!')
+
+
+    with gr.Blocks(theme=gr.themes.Soft(), title="EasyGUI-Web 💻") as app:
+    gr.HTML("<h1> The EasyGUI 💻 </h1>")
         # main tab
         with gr.Tab("Generate"):
 
@@ -177,7 +208,7 @@ if __name__ == '__main__':
                 with gr.Row():
                     with gr.Column():
                         rvc_model = gr.Dropdown(voice_models, label='Voice Models', info='Models folder "AICoverGen --> rvc_models". After new models are added into this folder, click the refresh button')
-                        ref_btn = gr.Button('Refresh Models 🔁', variant='primary')
+                        ref_btn = gr.Button('Refresh Models ', variant='primary')
 
                     with gr.Column() as yt_link_col:
                         song_input = gr.Text(label='Song input', info='Link to a song on YouTube or full path to a local file. For file upload, click the button below.')
@@ -185,7 +216,7 @@ if __name__ == '__main__':
 
                     with gr.Column(visible=False) as file_upload_col:
                         local_file = gr.File(label='Audio file')
-                        song_input_file = gr.UploadButton('Upload 📂', file_types=['audio'], variant='primary')
+                        song_input_file = gr.UploadButton('Upload ', file_types=['audio'], variant='primary')
                         show_yt_link_button = gr.Button('Paste YouTube link/Path to local file instead')
                         song_input_file.upload(process_file_upload, inputs=[song_input_file], outputs=[local_file, song_input])
 
@@ -202,7 +233,7 @@ if __name__ == '__main__':
                     rms_mix_rate = gr.Slider(0, 1, value=0.25, label='RMS mix rate', info="Control how much to mimic the original vocal's loudness (0) or a fixed loudness (1)")
                     protect = gr.Slider(0, 0.5, value=0.33, label='Protect rate', info='Protect voiceless consonants and breath sounds. Set to 0.5 to disable.')
                     with gr.Column():
-                        f0_method = gr.Dropdown(['rmvpe', 'mangio-crepe'], value='rmvpe', label='Pitch detection algorithm', info='Best option is rmvpe (clarity in vocals), then mangio-crepe (smoother vocals)')
+                        f0_method = gr.Dropdown(['rmvpe', 'crepe'], value='rmvpe', label='Pitch detection algorithm', info='Best option is rmvpe (clarity in vocals), then mangio-crepe (smoother vocals)')
                         crepe_hop_length = gr.Slider(32, 320, value=128, step=1, visible=False, label='Crepe hop length', info='Lower values leads to longer conversions and higher risk of voice cracks, but better pitch accuracy.')
                         f0_method.change(show_hop_slider, inputs=f0_method, outputs=crepe_hop_length)
                 keep_files = gr.Checkbox(label='Keep intermediate files', info='Keep all audio files generated in the song_output/id directory, e.g. Isolated Vocals/Instrumentals. Leave unchecked to save space')
@@ -227,7 +258,7 @@ if __name__ == '__main__':
             with gr.Row():
                 clear_btn = gr.ClearButton(value='Clear', components=[song_input, rvc_model, keep_files, local_file])
                 generate_btn = gr.Button("Generate", variant='primary')
-                ai_cover = gr.Audio(label='AI Cover', show_share_button=False)
+                ai_cover = gr.Audio(label='output', show_share_button=False)
 
             ref_btn.click(update_models_list, None, outputs=rvc_model)
             is_webui = gr.Number(value=1, visible=False)
@@ -295,25 +326,7 @@ if __name__ == '__main__':
                 filter_tags.change(filter_models, inputs=[filter_tags, search_query], outputs=public_models_table)
                 download_pub_btn.click(download_online_model, inputs=[pub_zip_link, pub_model_name], outputs=pub_dl_output_message)
 
-        # Upload tab
-        with gr.Tab('Upload model'):
-            gr.Markdown('## Upload locally trained RVC v2 model and index file')
-            gr.Markdown('- Find model file (weights folder) and optional index file (logs/[name] folder)')
-            gr.Markdown('- Compress files into zip file')
-            gr.Markdown('- Upload zip file and give unique name for voice')
-            gr.Markdown('- Click Upload model')
-
-            with gr.Row():
-                with gr.Column():
-                    zip_file = gr.File(label='Zip file')
-
-                local_model_name = gr.Text(label='Model name')
-
-            with gr.Row():
-                model_upload_button = gr.Button('Upload model', variant='primary', scale=19)
-                local_upload_output_message = gr.Text(label='Output Message', interactive=False, scale=20)
-                model_upload_button.click(upload_local_model, inputs=[zip_file, local_model_name], outputs=local_upload_output_message)
-
+        
     app.launch(
         share=args.share_enabled,
         enable_queue=True,
