@@ -204,7 +204,7 @@ if __name__ == '__main__':
         # main tab
         with gr.Tab("Generate"):
 
-            with gr.Accordion('Main Options'):
+            with gr.Accordion('Options'):
                 with gr.Row():
                     with gr.Column():
                         rvc_model = gr.Dropdown(voice_models, label='Voice Models', info='Models folder "AICoverGen --> rvc_models". After new models are added into this folder, click the refresh button')
@@ -226,9 +226,7 @@ if __name__ == '__main__':
                     show_file_upload_button.click(swap_visibility, outputs=[file_upload_col, yt_link_col, song_input, local_file])
                     show_yt_link_button.click(swap_visibility, outputs=[yt_link_col, file_upload_col, song_input, local_file])
 
-            with gr.Accordion('Voice conversion options', open=False):
-                with gr.Row():
-                    index_rate = gr.Slider(0, 1, value=0.5, label='Index Rate', info="Controls how much of the AI voice's accent to keep in the vocals")
+            index_rate = gr.Slider(0, 1, value=0.5, label='Index Rate', info="Controls how much of the AI voice's accent to keep in the vocals")
                     filter_radius = gr.Slider(0, 7, value=3, step=1, label='Filter radius', info='If >=3: apply median filtering median filtering to the harvested pitch results. Can reduce breathiness')
                     rms_mix_rate = gr.Slider(0, 1, value=0.25, label='RMS mix rate', info="Control how much to mimic the original vocal's loudness (0) or a fixed loudness (1)")
                     protect = gr.Slider(0, 0.5, value=0.33, label='Protect rate', info='Protect voiceless consonants and breath sounds. Set to 0.5 to disable.')
@@ -238,25 +236,16 @@ if __name__ == '__main__':
                         f0_method.change(show_hop_slider, inputs=f0_method, outputs=crepe_hop_length)
                 keep_files = gr.Checkbox(label='Keep intermediate files', info='Keep all audio files generated in the song_output/id directory, e.g. Isolated Vocals/Instrumentals. Leave unchecked to save space')
 
-            with gr.Accordion('Audio mixing options', open=False):
-                gr.Markdown('### Volume Change (decibels)')
-                with gr.Row():
                     main_gain = gr.Slider(-20, 20, value=0, step=1, label='Main Vocals')
                     backup_gain = gr.Slider(-20, 20, value=0, step=1, label='Backup Vocals')
                     inst_gain = gr.Slider(-20, 20, value=0, step=1, label='Music')
 
-                gr.Markdown('### Reverb Control on AI Vocals')
-                with gr.Row():
-                    reverb_rm_size = gr.Slider(0, 1, value=0.15, label='Room size', info='The larger the room, the longer the reverb time')
-                    reverb_wet = gr.Slider(0, 1, value=0.2, label='Wetness level', info='Level of AI vocals with reverb')
-                    reverb_dry = gr.Slider(0, 1, value=0.8, label='Dryness level', info='Level of AI vocals without reverb')
-                    reverb_damping = gr.Slider(0, 1, value=0.7, label='Damping level', info='Absorption of high frequencies in the reverb')
-
+    
                 gr.Markdown('### Audio Output Format')
                 output_format = gr.Dropdown(['mp3', 'wav'], value='mp3', label='Output file type', info='mp3: small file size, decent quality. wav: Large file size, best quality')
 
             with gr.Row():
-                clear_btn = gr.ClearButton(value='Clear', components=[song_input, rvc_model, keep_files, local_file])
+             #   clear_btn = gr.ClearButton(value='Clear', components=[song_input, rvc_model, keep_files, local_file])
                 generate_btn = gr.Button("Generate", variant='primary')
                 ai_cover = gr.Audio(label='output', show_share_button=False)
 
@@ -270,8 +259,7 @@ if __name__ == '__main__':
                                outputs=[ai_cover])
             clear_btn.click(lambda: [0, 0, 0, 0, 0.5, 3, 0.25, 0.33, 'rmvpe', 128, 0, 0.15, 0.2, 0.8, 0.7, 'mp3', None],
                             outputs=[pitch, main_gain, backup_gain, inst_gain, index_rate, filter_radius, rms_mix_rate,
-                                     protect, f0_method, crepe_hop_length, pitch_all, reverb_rm_size, reverb_wet,
-                                     reverb_dry, reverb_damping, output_format, ai_cover])
+                                     protect, f0_method, crepe_hop_length, pitch_all, output_format, ai_cover])
 
         # Download tab
         with gr.Tab('Download model'):
